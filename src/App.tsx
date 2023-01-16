@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/control-has-associated-label */
 import cn from 'classnames';
 
 import React, { useState } from 'react';
@@ -6,7 +7,12 @@ import './App.scss';
 import usersFromServer from './api/users';
 import photosFromServer from './api/photos';
 import albumsFromServer from './api/albums';
-import { Album, PreparedPhoto, User } from './types/types';
+import {
+  Album,
+  MoveDirection,
+  PreparedPhoto,
+  User,
+} from './types/types';
 
 const getUserById = (userId: number | undefined): User | null => {
   return usersFromServer.find(user => user.id === userId) || null;
@@ -23,7 +29,7 @@ const preparedPhotos: PreparedPhoto[] = photosFromServer.map(photo => ({
 }));
 
 export const App: React.FC = () => {
-  const [photos] = useState<PreparedPhoto[]>(preparedPhotos);
+  const [photos, setPhotos] = useState<PreparedPhoto[]>(preparedPhotos);
   const [selectedUser, setSelectedUser] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedAlbums, setSelectedAlbums] = useState<number[]>([]);
@@ -60,6 +66,53 @@ export const App: React.FC = () => {
     });
   };
 
+  const handleReorderPhoto = (
+    photoId: number,
+    moveDirection: MoveDirection,
+  ) => {
+    setPhotos(prev => {
+      const currentPhotoIndex = prev
+        .findIndex(photo => photoId === photo.id);
+      const prevPhotoIndex = currentPhotoIndex - 1;
+      const nextPhotoIndex = currentPhotoIndex + 1;
+      const currentPhoto = prev[currentPhotoIndex];
+
+      const newPhotos = [...prev];
+
+      switch (moveDirection) {
+        case 'up': {
+          if (currentPhotoIndex === 0) {
+            return prev;
+          }
+
+          const prevPhoto = newPhotos[prevPhotoIndex];
+
+          newPhotos[currentPhotoIndex] = prevPhoto;
+          newPhotos[prevPhotoIndex] = currentPhoto;
+          break;
+        }
+
+        case 'down': {
+          if (currentPhotoIndex === prev.length - 1) {
+            return prev;
+          }
+
+          const nextPhoto = newPhotos[nextPhotoIndex];
+
+          newPhotos[currentPhotoIndex] = nextPhoto;
+          newPhotos[nextPhotoIndex] = currentPhoto;
+
+          break;
+        }
+
+        default:
+          break;
+      }
+
+      return newPhotos;
+    });
+  };
+
   return (
     <div className="section">
       <div className="container">
@@ -86,6 +139,7 @@ export const App: React.FC = () => {
                     'is-active': selectedUser === user.name,
                   })}
                   onClick={() => setSelectedUser(user.name)}
+                  key={user.id}
                 >
                   {user.name}
                 </a>
@@ -121,7 +175,6 @@ export const App: React.FC = () => {
             <div className="panel-block is-flex-wrap-wrap">
               <a
                 href="#/"
-                // className="button is-success mr-6 is-outlined"
                 className={cn(
                   'button is-success mr-6',
                   { 'is-outlined': selectedAlbums.length !== 0 },
@@ -133,13 +186,13 @@ export const App: React.FC = () => {
 
               {albumsFromServer.map(album => (
                 <a
-                  // className="button mr-2 my-1"
                   className={cn(
                     'button mr-2 my-1',
                     { 'is-info': selectedAlbums.includes(album.id) },
                   )}
                   href="#/"
                   onClick={() => handleSelectAlbums(album.id)}
+                  key={album.id}
                 >
                   {album.title.split(' ')[0]}
                 </a>
@@ -218,6 +271,8 @@ export const App: React.FC = () => {
                       </a>
                     </span>
                   </th>
+
+                  <th />
                 </tr>
               </thead>
 
@@ -229,16 +284,31 @@ export const App: React.FC = () => {
                     </td>
 
                     <td>{photo.title}</td>
+
                     <td>{photo.album?.title}</td>
 
                     <td
-                      // className="has-text-link"
                       className={cn({
                         'has-text-link': photo.user?.sex === 'm',
                         'has-text-danger': photo.user?.sex === 'f',
                       })}
                     >
                       {photo.user?.name}
+                    </td>
+
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => handleReorderPhoto(photo.id, 'down')}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReorderPhoto(photo.id, 'up')}
+                      >
+                        ↑
+                      </button>
                     </td>
                   </tr>
                 ))}

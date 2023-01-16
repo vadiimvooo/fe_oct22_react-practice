@@ -21,3 +21,5 @@ export interface PreparedPhoto extends Photo {
   album?: Album | null,
   user?: User | null,
 }
+
+export type MoveDirection = 'up' | 'down';
